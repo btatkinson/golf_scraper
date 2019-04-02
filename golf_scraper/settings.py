@@ -91,6 +91,12 @@ SPIDER_MIDDLEWARES = {
 DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
 HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
 
+COLLECT = {
+    'PGA':True,
+    'Euro':True,
+    'Web':True
+}
+
 PGA_START_YEAR = 1980
 EURO_START_YEAR = 1980
 WEB_START_YEAR = 2010
