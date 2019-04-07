@@ -2,8 +2,10 @@
 import scrapy
 import datetime
 
-from golf_scraper.items import Tournament
 from scrapy_splash import SplashRequest
+from scrapy.selector import Selector
+
+from golf_scraper.items import Tournament
 from scrapy.shell import inspect_response
 from golf_scraper.settings import *
 
@@ -32,26 +34,29 @@ class SchedulesSpider(scrapy.Spider):
         pga_years = list(range(PGA_START_YEAR, self.this_year))
         euro_years = list(range(EURO_START_YEAR, self.this_year))
         web_years = list(range(WEB_START_YEAR, self.this_year))
+        # for pga and web, current year is treated differently
         pga_years = pga_years[:-1]
         web_years = web_years[:-1]
 
+        # append tuples so year info is passed
         for yr in pga_years:
-            pga_urls.append('https://www.pgatour.com/tournaments/schedule.history.'+str(yr)+'.html')
-        # this year is treated differently
-        pga_urls.append('https://www.pgatour.com/tournaments/schedule.html')
+            pga_urls.append((yr,'https://www.pgatour.com/tournaments/schedule.history.'+str(yr)+'.html'))
+        pga_urls.append((yr,'https://www.pgatour.com/tournaments/schedule.html'))
 
         for yr in euro_years:
             euro_urls.append('http://www.europeantour.com/europeantour/tournament/Season='+str(yr)+'/index_full.html')
 
         for yr in web_years:
             web_urls.append('https://www.pgatour.com/webcom/tournaments/schedule.history.'+str(yr)+'.html')
-        # this year is treated differently
         web_urls.append('https://www.pgatour.com/webcom/tournaments/schedule.html')
 
         # testing
         pga_urls = pga_urls[:1]
+
         for url in pga_urls:
-            yield SplashRequest(url=url, callback=self.pga_parse)
+            sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':0.5}, callback=self.pga_parse)
+            sr.meta['season'] = url[0]
+            yield sr
 
         for url in euro_urls:
             # yield SplashRequest(url=url, callback=self.euro_parse)
@@ -62,8 +67,33 @@ class SchedulesSpider(scrapy.Spider):
             pass
 
     def pga_parse(self, response):
-        inspect_response(response,self)
-        
+        # inspect_response(response,self)
+        trn = Tournament()
+        hxs = Selector(response)
+        table = hxs.xpath('//table[@class="table-styled js-table schedule-history-table"]')
+        rows = table.css('tr')
+        for row in rows:
+            date = row.css('span::text').getall()
+            name = row.css('.js-tournament-name::text').get()
+            info = row.css('.tournament-text::text').getall()
+            try:
+                link = row.css('a::attr(href)').get()
+            except:
+                link = "Not Available"
+
+            if len(date) <= 0:
+                continue
+            elif date is None:
+                continue
+            else:
+                trn["start_date"] = date
+                trn["name"] = name
+                trn["tour"] = "PGA"
+                trn["location"] = info
+                trn["season"] = response.meta['season']
+                trn["link"] = link
+            yield trn
+
 
     def euro_parse(self, response):
         pass

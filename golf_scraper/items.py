@@ -10,5 +10,10 @@ import scrapy
 
 class Tournament(scrapy.Item):
     # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    season = scrapy.Field()
+    tour = scrapy.Field()
+    name = scrapy.Field()
+    start_date = scrapy.Field()
+    end_date = scrapy.Field()
+    location = scrapy.Field()
+    link = scrapy.Field()
