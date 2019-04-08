@@ -27,12 +27,22 @@ class SchedulePipeline(object):
 
         return item
 
+    def clean_web(self, item):
+        info = item['location']
+        if info:
+            info = info.replace("\n","")
+            info = info.replace("\r","")
+            info = info.replace(" ","")
+            info = info.replace("\xa0"," ")
+            item['location'] = info
+        return item
+
     def process_item(self, item, spider):
 
         if item['tour'] == 'PGA':
             item = self.clean_pga(item)
 
-        # handle date
-
+        if item['tour'] == 'Web':
+            item = self.clean_web(item)
 
         return item

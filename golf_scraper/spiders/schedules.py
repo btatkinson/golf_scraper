@@ -47,12 +47,13 @@ class SchedulesSpider(scrapy.Spider):
             euro_urls.append((yr,'http://www.europeantour.com/europeantour/tournament/Season='+str(yr)+'/index_full.html'))
 
         for yr in web_years:
-            web_urls.append('https://www.pgatour.com/webcom/tournaments/schedule.history.'+str(yr)+'.html')
-        web_urls.append('https://www.pgatour.com/webcom/tournaments/schedule.html')
+            web_urls.append((yr,'https://www.pgatour.com/webcom/tournaments/schedule.history.'+str(yr)+'.html'))
+        web_urls.append((yr,'https://www.pgatour.com/webcom/tournaments/schedule.html'))
 
         # testing
         pga_urls = pga_urls[:1]
         euro_urls = euro_urls[:1]
+        web_urls = web_urls[:1]
 
         for url in pga_urls:
             # sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':0.5}, callback=self.pga_parse)
@@ -61,13 +62,16 @@ class SchedulesSpider(scrapy.Spider):
             pass
 
         for url in euro_urls:
-            sr = SplashRequest(url=url[1], callback=self.euro_parse)
-            sr.meta['season'] = url[0]
-            yield sr
+            # sr = SplashRequest(url=url[1], callback=self.euro_parse)
+            # sr.meta['season'] = url[0]
+            # yield sr
+            pass
 
         for url in web_urls:
-            # yield SplashRequest(url=url, callback=self.web_parse)
-            pass
+            sr = SplashRequest(url=url[1], callback=self.web_parse)
+            sr.meta['season'] = url[0]
+            yield sr
+            # pass
 
     def pga_parse(self, response):
         # inspect_response(response,self)
@@ -117,4 +121,30 @@ class SchedulesSpider(scrapy.Spider):
             yield trn
 
     def web_parse(self, response):
-        pass
+        trn = Tournament()
+        hxs = Selector(response)
+        table = hxs.xpath('//table[@class="table-styled js-table schedule-history-table"]')
+        rows = table.css('tr')
+        for row in rows:
+            cells = row.css('td')
+            if len(cells) < 3:
+                continue
+            trn['tour'] = "Web"
+            trn['season'] = response.meta['season']
+            # date
+            l_date = cells[0].css('span::text').getall()
+            trn['start_date'] = " ".join([x.strip() for x in l_date])
+
+            l_info = cells[1].css('::text').getall()
+            # strip whitespace
+            l_info = [x.strip() for x in l_info]
+            info = [x for x in l_info if len(x) > 0]
+            trn['name'] = info[0]
+            trn['location'] = info[1]
+
+            try:
+                trn['link'] = row.css('a::attr(href)').get()
+            except:
+                trn['link'] = "Not Available"
+
+            yield trn
