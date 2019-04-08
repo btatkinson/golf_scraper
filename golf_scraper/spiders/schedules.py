@@ -44,7 +44,7 @@ class SchedulesSpider(scrapy.Spider):
         pga_urls.append((yr,'https://www.pgatour.com/tournaments/schedule.html'))
 
         for yr in euro_years:
-            euro_urls.append('http://www.europeantour.com/europeantour/tournament/Season='+str(yr)+'/index_full.html')
+            euro_urls.append((yr,'http://www.europeantour.com/europeantour/tournament/Season='+str(yr)+'/index_full.html'))
 
         for yr in web_years:
             web_urls.append('https://www.pgatour.com/webcom/tournaments/schedule.history.'+str(yr)+'.html')
@@ -52,15 +52,18 @@ class SchedulesSpider(scrapy.Spider):
 
         # testing
         pga_urls = pga_urls[:1]
+        euro_urls = euro_urls[:1]
 
         for url in pga_urls:
-            sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':0.5}, callback=self.pga_parse)
-            sr.meta['season'] = url[0]
-            yield sr
+            # sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':0.5}, callback=self.pga_parse)
+            # sr.meta['season'] = url[0]
+            # yield sr
+            pass
 
         for url in euro_urls:
-            # yield SplashRequest(url=url, callback=self.euro_parse)
-            pass
+            sr = SplashRequest(url=url[1], callback=self.euro_parse)
+            sr.meta['season'] = url[0]
+            yield sr
 
         for url in web_urls:
             # yield SplashRequest(url=url, callback=self.web_parse)
@@ -96,7 +99,22 @@ class SchedulesSpider(scrapy.Spider):
 
 
     def euro_parse(self, response):
-        pass
+        trn = Tournament()
+        hxs = Selector(response)
+        table = hxs.css('[id=includeSchedule]')
+        rows = table.css('tr')
+        for row in rows:
+            cells = row.css('td')
+
+            trn['tour'] = "Euro"
+            trn['season'] = response.meta['season']
+            trn['start_date'] = cells[1].css('::text').get()
+            trn['end_date'] = cells[2].css('::text').get()
+            trn['name'] = cells[4].css('a::text').get()
+            trn['location'] = cells[4].css('li::text').get()
+            trn['link'] = row.css('a::attr(href)').get()
+
+            yield trn
 
     def web_parse(self, response):
         pass

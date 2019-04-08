@@ -7,9 +7,8 @@
 
 
 class SchedulePipeline(object):
-    def process_item(self, item, spider):
 
-        # handle date
+    def clean_pga(self,item):
         date = item['start_date']
         stripped = [x.strip() for x in date]
         date = " ".join(stripped)
@@ -25,5 +24,15 @@ class SchedulePipeline(object):
             info = " ".join(text)
             info = info.strip()
             item['location'] = info
+
+        return item
+
+    def process_item(self, item, spider):
+
+        if item['tour'] == 'PGA':
+            item = self.clean_pga(item)
+
+        # handle date
+
 
         return item
