@@ -99,6 +99,8 @@ COLLECT = {
     'Web':True
 }
 
+# earliest start for PGA and Euro: 1980
+# web: 2000
 PGA_START_YEAR = 2000
 EURO_START_YEAR = 2000
 WEB_START_YEAR = 2010

@@ -11,6 +11,8 @@ import scrapy
 class Tournament(scrapy.Item):
     # define the fields for your item here like:
     season = scrapy.Field()
+    # some tournaments are in a different year than the "season"
+    year = scrapy.Field()
     tour = scrapy.Field()
     name = scrapy.Field()
     start_date = scrapy.Field()
