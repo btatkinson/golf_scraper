@@ -21,6 +21,8 @@ class SchedulesSpider(scrapy.Spider):
         self.this_year = datetime.date.today().year
 
     def start_requests(self):
+
+        # generate URLS
         pga_urls = []
         euro_urls = []
         web_urls = []
@@ -29,30 +31,36 @@ class SchedulesSpider(scrapy.Spider):
         euro_years = list(range(EURO_START_YEAR, (self.this_year+1)))
         web_years = list(range(WEB_START_YEAR, (self.this_year+1)))
 
-        # sched = None
-        # try:
-        #     with open('./sched.csv', 'rbU') as csv_file:
-        #         sched = pd.read_csv('./sched.csv')
-        # except:
-        #     pass
-        #
-        # if sched is not None:
-        #     # already collected years
-        #     ac_pga = sched.loc[sched.tour=='PGA']
-        #     ac_pga = ac_pga.season.unique()
-        #     ac_euro = sched.loc[sched.tour=='Euro']
-        #     ac_euro = ac_euro.season.unique()
-        #     ac_web = sched.loc[sched.tour=='Web']
-        #     ac_web = ac_web.season.unique()
-        #
-        #     # years not collected
-        #     pga_years = list(set(pga_years) - set(ac_pga))
-        #     euro_years = list(set(euro_years) - set(ac_euro))
-        #     web_years = list(set(web_years) - set(ac_web))
+        sched = None
+        try:
+            sched = pd.read_csv('./sched.csv')
+        except:
+            pass
+
+        if sched is not None:
+            print(sched)
+            # already collected years
+            ac_pga = sched.loc[sched.tour=='PGA']
+            ac_pga = list(ac_pga.season.unique())
+            ac_euro = sched.loc[sched.tour=='Euro']
+            ac_euro = list(ac_euro.season.unique())
+            ac_web = sched.loc[sched.tour=='Web']
+            ac_web = list(ac_web.season.unique())
+
+            # turn into ints
+            ac_pga = list(map(int, ac_pga))
+            ac_euro = list(map(int, ac_euro))
+            ac_web = list(map(int, ac_web))
+
+            # years not collected
+            pga_years = list(set(pga_years) - set(ac_pga))
+            euro_years = list(set(euro_years) - set(ac_euro))
+            web_years = list(set(web_years) - set(ac_web))
 
         print("PGA years to collect: ", pga_years)
         print("Euro years to collect: ", euro_years)
         print("Web years to collect: ", web_years)
+
         # for pga and web, current year is treated differently
         if self.this_year in pga_years:
             pga_urls.append((self.this_year,'https://www.pgatour.com/tournaments/schedule.html'))
@@ -62,14 +70,14 @@ class SchedulesSpider(scrapy.Spider):
             web_years.remove(self.this_year)
 
         # append tuples so year info is passed
-        # for yr in pga_years:
-        #     pga_urls.append((yr,'https://www.pgatour.com/tournaments/schedule.history.'+str(yr)+'.html'))
-        # 
-        # for yr in euro_years:
-        #     euro_urls.append((yr,'http://www.europeantour.com/europeantour/tournament/Season='+str(yr)+'/index_full.html'))
-        #
-        # for yr in web_years:
-        #     web_urls.append((yr,'https://www.pgatour.com/webcom/tournaments/schedule.history.'+str(yr)+'.html'))
+        for yr in pga_years:
+            pga_urls.append((yr,'https://www.pgatour.com/tournaments/schedule.history.'+str(yr)+'.html'))
+
+        for yr in euro_years:
+            euro_urls.append((yr,'http://www.europeantour.com/europeantour/tournament/Season='+str(yr)+'/index_full.html'))
+
+        for yr in web_years:
+            web_urls.append((yr,'https://www.pgatour.com/webcom/tournaments/schedule.history.'+str(yr)+'.html'))
 
         # testing
         # pga_urls = pga_urls[:1]
@@ -77,17 +85,17 @@ class SchedulesSpider(scrapy.Spider):
         # web_urls = web_urls[:1]
 
         for url in pga_urls:
-            sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':0.5}, callback=self.pga_parse)
+            sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':1}, callback=self.pga_parse)
             sr.meta['season'] = url[0]
             yield sr
 
         for url in web_urls:
-            sr = SplashRequest(url=url[1], callback=self.web_parse)
+            sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':1}, callback=self.web_parse)
             sr.meta['season'] = url[0]
             yield sr
 
         for url in euro_urls:
-            sr = SplashRequest(url=url[1], callback=self.euro_parse)
+            sr = SplashRequest(url=url[1], args={'timeout': 90,'wait':1}, callback=self.euro_parse)
             sr.meta['season'] = url[0]
             yield sr
 
@@ -95,10 +103,14 @@ class SchedulesSpider(scrapy.Spider):
         # inspect_response(response,self)
         trn = Tournament()
         hxs = Selector(response)
-        table = hxs.xpath('//table[@class="table-styled js-table schedule-history-table"]')
+        if response.meta['season'] == self.this_year:
+            table = hxs.xpath('//table[@class="table-styled js-table"]')
+        else:
+            table = hxs.xpath('//table[@class="table-styled js-table schedule-history-table"]')
+
         rows = table.css('tr')
 
-        # has it been january yet? (some tournaments are the prior year)
+        # has it been january yet? (some tournaments are from the prior calendar year)
         jan = False
         for row in rows:
             date = row.css('span::text').getall()
@@ -135,7 +147,7 @@ class SchedulesSpider(scrapy.Spider):
         hxs = Selector(response)
         table = hxs.css('[id=includeSchedule]')
         rows = table.css('tr')
-        # has it been january yet? (some tournaments are the prior year)
+        # has it been january yet? (some tournaments are from the prior calendar year)
         jan = False
         for row in rows:
             cells = row.css('td')
@@ -160,9 +172,12 @@ class SchedulesSpider(scrapy.Spider):
     def web_parse(self, response):
         trn = Tournament()
         hxs = Selector(response)
-        table = hxs.xpath('//table[@class="table-styled js-table schedule-history-table"]')
+        if response.meta['season'] == self.this_year:
+            table = hxs.xpath('//table[@class="table-styled js-table"]')
+        else:
+            table = hxs.xpath('//table[@class="table-styled js-table schedule-history-table"]')
         rows = table.css('tr')
-        # has it been january yet? (some tournaments are the prior year)
+        # has it been january yet? (some tournaments are from the prior calendar year)
         jan = False
         for row in rows:
             cells = row.css('td')
