@@ -15,6 +15,11 @@ class SchedulesSpider(scrapy.Spider):
     name = 'schedules'
     allowed_domains = ['pgatour.com','europeantour.com']
     start_urls = ['http://pgatour.com/']
+    custom_settings = {
+        'ITEM_PIPELINES': {
+            'golf_scraper.pipelines.SchedulePipeline': 400
+        }
+    }
 
     def __init__(self, *args, **kwargs):
         super(SchedulesSpider, self).__init__(*args, **kwargs)

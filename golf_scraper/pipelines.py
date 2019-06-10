@@ -4,6 +4,12 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
+class ScoresPipeline(object):
+
+    def process_item(self, item, spider):
+
+        return item
+
 
 
 class SchedulePipeline(object):
@@ -90,16 +96,18 @@ class SchedulePipeline(object):
 
     def process_item(self, item, spider):
 
-        if item['tour'] == 'PGA':
-            item = self.clean_pga(item)
+        raise ValueError('Using schedule pipeline')
+        if spider == 'schedules':
+            if item['tour'] == 'PGA':
+                item = self.clean_pga(item)
 
-        if item['tour'] == 'Euro':
-            item = self.clean_euro(item)
+            if item['tour'] == 'Euro':
+                item = self.clean_euro(item)
 
-        if item['tour'] == 'Web':
-            item = self.clean_web(item)
+            if item['tour'] == 'Web':
+                item = self.clean_web(item)
 
-        item['start_date'] = item['start_date'] + " " + str(item['year'])
-        item['end_date'] = item['end_date'] + " " + str(item['year'])
+            item['start_date'] = item['start_date'] + " " + str(item['year'])
+            item['end_date'] = item['end_date'] + " " + str(item['year'])
 
         return item

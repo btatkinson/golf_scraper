@@ -21,7 +21,7 @@ Pulls historical data for pga tour, euro tour, web tour. Built on Scrapy.
 * Note: The Web tour doesn't go very far back, I start in 2010
 * Another note: I also uploaded a copy of what the sched.py should output since the .csv file isn't that big. If you're lazy and it's still 2019 you can use that
 
-4.
+4. 
 
 
 <!--  -->

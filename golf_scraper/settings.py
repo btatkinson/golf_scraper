@@ -14,8 +14,8 @@ BOT_NAME = 'golf_scraper'
 SPIDER_MODULES = ['golf_scraper.spiders']
 NEWSPIDER_MODULE = 'golf_scraper.spiders'
 
-FEED_FORMAT = "csv"
-FEED_URI = "./sched.csv"
+# FEED_FORMAT = "csv"
+# FEED_URI = "./sched.csv"
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'golf_scraper (+http://www.yourdomain.com)'
@@ -56,6 +56,7 @@ DOWNLOAD_DELAY = 0.5
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    'golf_scraper.pipelines.SchedulePipeline': 300,
+   'golf_scraper.pipelines.ScoresPipeline': 400,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
