@@ -29,15 +29,30 @@ class Tournament(object):
 
 class ScoresSpider(scrapy.Spider):
     name = 'scores'
-    allowed_domains = ['pgatour.com']
+    allowed_domains = ['pgatour.com','europeantour.com']
     start_urls = ['http://pgatour.com/','europeantour.com']
     custom_settings = {
         'ITEM_PIPELINES': {
             'golf_scraper.pipelines.ScoresPipeline': 400
         }
     }
+
     def __init__(self, *args, **kwargs):
         super(ScoresSpider, self).__init__(*args, **kwargs)
+
+    def check_to_filter(self, trn):
+        should_filter = False
+
+        if 'Match Play' in trn.name:
+            should_filter = True
+
+        if 'Ryder Cup' in trn.name:
+            should_filter = True
+
+        if trn.tour == 'Web':
+            should_filter = True
+
+        return should_filter
 
     def start_requests(self):
 
@@ -51,12 +66,20 @@ class ScoresSpider(scrapy.Spider):
             trns.append(trn)
 
         # testing
-        trns=trns[1799:1800]
+        trns=trns[:50]
+        for trn in trns:
+            print(trn.link)
 
         for trn in trns:
             date = datetime.datetime.strptime(trn.end_date, '%b %d %Y').date()
             if date > datetime.datetime.today().date():
                 continue
+
+            # check if it matches criteria to throw out
+            should_filter = self.check_to_filter(trn)
+            if should_filter:
+                continue
+
             if trn.tour == 'PGA':
                 sr = SplashRequest(url=trn.link, args={'timeout': 90,'wait':1}, callback=self.pga_parse)
             elif trn.tour == 'Euro':
@@ -120,24 +143,92 @@ class ScoresSpider(scrapy.Spider):
                         plyr_trn['end_date'] = response.meta['Trn'].end_date
                         plyr_trn['start_date'] = response.meta['Trn'].start_date
                         plyr_trn['location'] = response.meta['Trn'].location
-                        
-                        print(plyr_trn)
+
+                        # can't access response meta in item pipeline, this is hacky solution
                         yield plyr_trn
 
-        else:
-            # add tournament to not collected file
-            with open('./not_collected.txt') as f:
-                trns = [line.rstrip('\n') for line in open('./not_collected.txt')]
-
-            trns.append(response.meta['name'], response.meta['season'])
-
-            with open('./not_collected.txt', 'w') as f:
-                for item in trns:
-                    f.write("%s\n" % item)
         yield
+
+
     def euro_parse(self, response):
-        # inspect_response(response,self)
+        table_found = False
+        # for newer tables
+        table = response.xpath('//table[@id="results-table"]')
+        if len(table) > 0:
+            table_found = True
+
+            header = response.xpath('//table[@id="results-table"]/thead/tr')
+            header_cells = header.css('th::text').getall()
+
+            r1_idx = header_cells.index('R1')
+            try:
+                r2_idx = header_cells.index('R2')
+            except:
+                print("no round 2")
+            try:
+                r3_idx = header_cells.index('R3')
+            except:
+                print("no round 3")
+            try:
+                r4_idx = header_cells.index('R4')
+            except:
+                print("no round 4")
+
+            rows = response.xpath('//table[@id="results-table"]/tbody//tr')
+            for row in rows:
+                plyr_trn = Player_Tournament()
+
+                cells = row.css('td::text').getall()
+                # remove empty cells
+                cells = [x for x in cells if not x.isspace()]
+                plyr_trn['name'] = row.css('a *::text')[0].extract()
+                plyr_trn['pos'] = cells[0]
+                plyr_trn['R1'] = cells[r1_idx]
+                if r2_idx:
+                    plyr_trn['R2'] = cells[r2_idx]
+                if r3_idx:
+                    plyr_trn['R3'] = cells[r3_idx]
+                if r4_idx:
+                    plyr_trn['R4'] = cells[r4_idx]
+
+                plyr_trn['tournament'] = response.meta['Trn'].name
+                plyr_trn['season'] = response.meta['Trn'].season
+                plyr_trn['tour'] = response.meta['Trn'].tour
+                plyr_trn['end_date'] = response.meta['Trn'].end_date
+                plyr_trn['start_date'] = response.meta['Trn'].start_date
+                plyr_trn['location'] = response.meta['Trn'].location
+
+                yield plyr_trn
+
+        # for older tables
+        if not table_found:
+            table = response.xpath('//*[@id="leaderboardTable"]')
+        if len(table) > 0:
+            table_found = True
+            plyr_trn = Player_Tournament()
+            rows = response.css('ul.dataRow')
+            for row in rows:
+                try:
+                    plyr_trn['name'] = row.css('a *::text')[0].extract()
+                except:
+                    continue
+                cells = row.css('span::text').getall()
+                plyr_trn['pos'] = cells[0]
+                plyr_trn['R1'] = cells[3]
+                plyr_trn['R2'] = cells[4]
+                plyr_trn['R3'] = cells[5]
+                plyr_trn['R4'] = cells[6]
+                plyr_trn['tournament'] = response.meta['Trn'].name
+                plyr_trn['season'] = response.meta['Trn'].season
+                plyr_trn['tour'] = response.meta['Trn'].tour
+                plyr_trn['end_date'] = response.meta['Trn'].end_date
+                plyr_trn['start_date'] = response.meta['Trn'].start_date
+                plyr_trn['location'] = response.meta['Trn'].location
+
+                yield plyr_trn
+
         yield
+
     def web_parse(self, response):
         # inspect_response(response,self)
         yield
