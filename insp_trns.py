@@ -5,7 +5,7 @@ trn_df = pd.read_csv('./scores.csv')
 
 sched_df = pd.read_csv('./sched.csv')
 # testing
-sched_df = sched_df[:50]
+sched_df = sched_df[:10]
 
 trn_df['tournament'] = trn_df['tournament'].str.strip()
 trn_df['season'] = trn_df['season'].astype(str)

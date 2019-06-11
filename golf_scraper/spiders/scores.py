@@ -3,6 +3,8 @@ import scrapy
 import pandas as pd
 import numpy as np
 import datetime
+import time
+import math
 
 from scrapy.shell import inspect_response
 from scrapy_splash import SplashRequest
@@ -16,6 +18,7 @@ from scores_helper import *
 
 class Tournament(object):
     """docstring for Tournament."""
+
     def __init__(self, row):
         super(Tournament, self).__init__()
         self.end_date = row[0]
@@ -37,20 +40,29 @@ class ScoresSpider(scrapy.Spider):
         }
     }
 
+    skip_df = []
+
     def __init__(self, *args, **kwargs):
         super(ScoresSpider, self).__init__(*args, **kwargs)
 
     def check_to_filter(self, trn):
         should_filter = False
 
+        if not isinstance(trn.link, str) and math.isnan(trn.link):
+            should_filter = True
+            self.skip_df.append([trn.season, trn.tour, trn.name, "No Link"])
+
         if 'Match Play' in trn.name:
             should_filter = True
+            self.skip_df.append([trn.season, trn.tour, trn.name, "Match Play"])
 
         if 'Ryder Cup' in trn.name:
             should_filter = True
+            self.skip_df.append([trn.season, trn.tour, trn.name, "Ryder Cup"])
 
         if trn.tour == 'Web':
             should_filter = True
+            self.skip_df.append([trn.season, trn.tour, trn.name, "Web"])
 
         return should_filter
 
@@ -66,17 +78,19 @@ class ScoresSpider(scrapy.Spider):
             trns.append(trn)
 
         # testing
-        trns=trns[:50]
-        for trn in trns:
-            print(trn.link)
+        trns=trns[:49]
+        # for trn in trns:
+        #     print(trn.link)
 
         for trn in trns:
+
             date = datetime.datetime.strptime(trn.end_date, '%b %d %Y').date()
             if date > datetime.datetime.today().date():
                 continue
 
             # check if it matches criteria to throw out
             should_filter = self.check_to_filter(trn)
+
             if should_filter:
                 continue
 
@@ -90,6 +104,9 @@ class ScoresSpider(scrapy.Spider):
                 continue
             sr.meta['Trn'] = trn
             yield sr
+
+        self.skip_df = pd.DataFrame(self.skip_df, columns=['Season', 'Tour', 'Tournament', 'Reason'])
+        self.skip_df.to_csv('./skipped_trns.csv')
 
     def pga_parse(self, response):
 
