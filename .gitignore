@@ -1,3 +1,5 @@
 sched.csv
 scores.csv
-skipped_trns.csv
+skipped.csv
+has_saved.csv
+leaderboards/

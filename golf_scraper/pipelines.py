@@ -10,34 +10,46 @@ from scrapy.exporters import CsvItemExporter
 
 class ScoresPipeline(object):
 
-  def __init__(self):
-    self.files = {}
+    def __init__(self):
+        self.files = {}
 
-  @classmethod
-  def from_crawler(cls, crawler):
-    pipeline = cls()
-    crawler.signals.connect(pipeline.spider_opened, signals.spider_opened)
-    crawler.signals.connect(pipeline.spider_closed, signals.spider_closed)
-    return pipeline
+    @classmethod
+    def from_crawler(cls, crawler):
+        pipeline = cls()
+        crawler.signals.connect(pipeline.spider_opened, signals.spider_opened)
+        crawler.signals.connect(pipeline.spider_closed, signals.spider_closed)
+        return pipeline
 
-  def spider_opened(self, spider):
-    # path = './leaderboard/'+self.season+'/'+self.tour+'/'+self.trn+'.csv'
+    def spider_opened(self, spider):
+        # path = './leaderboard/'+self.season+'/'+self.tour+'/'+self.trn+'.csv'
 
-    file = open('%s.csv' % spider.name, 'w+b')
-    self.files[spider] = file
-    self.exporter = CsvItemExporter(file)
-    self.exporter.fields_to_export = ["name", "pos", "R1", "R2", "R3", "R4", "tournament", "tour", "season", "location","start_date","end_date"]
-    self.exporter.start_exporting()
+        file = open('%s.csv' % spider.name, 'w+b')
+        self.files[spider] = file
+        self.exporter = CsvItemExporter(file)
+        self.exporter.fields_to_export = ["name", "pos", "R1", "R2", "R3", "R4", "tournament", "tour", "season", "location","start_date","end_date"]
+        self.exporter.start_exporting()
 
-  def spider_closed(self, spider):
-    self.exporter.finish_exporting()
-    file = self.files.pop(spider)
-    file.close()
+    def spider_closed(self, spider):
+        self.exporter.finish_exporting()
+        file = self.files.pop(spider)
+        file.close()
 
-  def process_item(self, item, spider):
-    item['name'] = item['name'].replace('"', '')
-    self.exporter.export_item(item)
-    return item
+    def fix_euro_names(self, name):
+        sn = name.split(" ")
+        last_name = sn[0]
+        last_name = last_name.lower().capitalize()
+        last_name = "".join(last_name)
+        # euros start out with last name, move it to the end
+        sn.pop(0)
+        sn.append(last_name)
+        return " ".join(sn)
+
+    def process_item(self, item, spider):
+        item['name'] = item['name'].replace('"', '')
+        if item['tour'] == 'Euro':
+            item['name'] = self.fix_euro_names(item['name'])
+        self.exporter.export_item(item)
+        return item
 
 
 
@@ -82,6 +94,12 @@ class SchedulePipeline(object):
             l_d = split_index.split()
             item['start_date'] = month + " " + l_d[1]
             item['end_date'] = month + " " + l_d[2]
+
+        # add ids
+        name = item['name'].split()
+        name = item['name'].replace(" ","")
+        season = str(item['season'])
+        item['tid'] = str(name + item['tour'] + season)
         return item
 
     def clean_euro(self, item):
@@ -90,6 +108,12 @@ class SchedulePipeline(object):
             if ".com" not in item['link']:
                 item['link'] = 'https://www.europeantour.com/'+item['link']
                 item['link'] = item['link'].replace('/index.html','/leaderboard/index.html')
+
+        # add ids
+        name = item['name'].split()
+        name = item['name'].replace(" ","")
+        season = str(item['season'])
+        item['tid'] = str(name + item['tour'] + season)
 
         return item
 
@@ -120,6 +144,12 @@ class SchedulePipeline(object):
             l_d = split_index.split()
             item['start_date'] = month + " " + l_d[1]
             item['end_date'] = month + " " + l_d[2]
+
+        # add ids
+        name = item['name'].split()
+        name = item['name'].replace(" ","")
+        season = str(item['season'])
+        item['tid'] = str(name + item['tour'] + season)
 
         return item
 

@@ -42,34 +42,160 @@ class ScoresSpider(scrapy.Spider):
 
     skip_df = []
 
+
     def __init__(self, *args, **kwargs):
         super(ScoresSpider, self).__init__(*args, **kwargs)
 
-    def check_to_filter(self, trn):
+    def get_tid(self, name, tour, season):
+        name = name.strip()
+        name = name.replace(" ","")
+        season = str(season)
+        return str(name+tour+season)
+
+    def check_to_filter(self, trn, collected, skipped):
         should_filter = False
 
+        tid = self.get_tid(trn.name, trn.tour, trn.season)
+
+        # check if already collected
+        if tid in collected:
+            should_filter = True
+        if tid in skipped:
+            should_filter = True
+
+        # check for other problems
+
+        #check for no link
         if not isinstance(trn.link, str) and math.isnan(trn.link):
             should_filter = True
-            self.skip_df.append([trn.season, trn.tour, trn.name, "No Link"])
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "No Link"])
 
-        if 'Match Play' in trn.name:
+        if 'MatchPlay' in trn.name:
             should_filter = True
-            self.skip_df.append([trn.season, trn.tour, trn.name, "Match Play"])
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
 
-        if 'Ryder Cup' in trn.name:
+        if 'RyderCup' in trn.name:
             should_filter = True
-            self.skip_df.append([trn.season, trn.tour, trn.name, "Ryder Cup"])
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Ryder Cup"])
+        if 'RYDERCUP' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Ryder Cup"])
+
+        if 'PresidentsCup' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Presidents Cup"])
+
+        if 'Tigervs.Phil' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Tigervs.Phil"])
+
+        if 'WorldCupofGolf' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "WorldCupofGolf"])
+
+        if 'FranklinTempletonShootout' in trn.name:
+            if int(trn.season) ==2000:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Doubles"])
+        if 'VivendiSeveTrophy' in trn.name:
+            if int(trn.season) ==2011:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'VivendiTrophywithSeveBallesteros' in trn.name:
+            if int(trn.season) ==2009:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'RoyalTrophy' in trn.name:
+            if int(trn.season) ==2009:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'EURASIACUPpresentedbyDRB-HICOM' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'ISPSHANDAWorldSuper6Perth' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'GolfSixes' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'SeveTrophy' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "MatchPlay"])
+        # missing
+        if 'WGC-CadillacChampionship' in trn.name:
+            if int(trn.season) in [2012]:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
+        if 'OmegaMissionHillsWorldCup' in trn.name:
+            if int(trn.season) in [2007]:
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
+                should_filter = True
+        if 'FijiInternational' in trn.name:
+            if int(trn.season) in [2017]:
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
+                should_filter = True
+        if 'Olympic' in trn.name:
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
+            should_filter = True
+        if 'WGC-BarbadosWorldCup' in trn.name:
+            if int(trn.season) in [2006]:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
+        if 'QualifyingSchoolStage1-Moliets' in trn.name:
+            if int(trn.season) in [2000]:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
+        if 'EuropeanTourQualifyingSchoolFinals' in trn.name:
+            if int(trn.season) in [2000]:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
+
+        # was cancelled
+        if 'Cancelled' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'CANCELLED' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+
+        if '*' in trn.name:
+            if trn.tour =='Euro':
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'TampaBayClassicpresentedbyBuick' in trn.name:
+            if int(trn.season) ==2001:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'WorldGolfChampionships-AmericanExpressChampionship' in trn.name:
+            if int(trn.season) ==2001:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
 
         if trn.tour == 'Web':
             should_filter = True
-            self.skip_df.append([trn.season, trn.tour, trn.name, "Web"])
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Web"])
 
         return should_filter
 
+    def fix_ty_pga(self, link):
+        return link.replace('.html', '/past-results.html')
+
     def start_requests(self):
+
+        # start scraping number
+        START = 0
+        END = 1299
 
         # load tournaments
         sched = pd.read_csv('./sched.csv')
+
+        # load already collected
+        collected = pd.read_csv('./has_saved.csv')
+        collected = list(collected.TID.unique())
+
+        # load already skipped
+        old_skipped = pd.read_csv('./skipped.csv')
+        skipped = list(old_skipped.TID.unique())
 
         # tournament object list
         trns = []
@@ -78,22 +204,42 @@ class ScoresSpider(scrapy.Spider):
             trns.append(trn)
 
         # testing
-        trns=trns[:49]
-        # for trn in trns:
-        #     print(trn.link)
-
+        trns=trns[START:END]
+        num_trns = len(trns)
+        test_trns = []
         for trn in trns:
+            if trn.link == 'https://www.europeantour.com//europeantour/season=2015/tournamentid=2015008/leaderboard/index.html':
+                test_trns.append(trn)
+        print('TEST TRN LINKS: ', len(test_trns))
 
-            date = datetime.datetime.strptime(trn.end_date, '%b %d %Y').date()
+        # count tournaments of the future
+        ho_counter = 0
+        for trn in test_trns:
+            try:
+                date = datetime.datetime.strptime(trn.end_date, '%b %d %Y').date()
+            except:
+                if trn.end_date == 'end_date':
+                    continue
             if date > datetime.datetime.today().date():
+                print("Hasn't occured")
+                ho_counter += 1
                 continue
 
             # check if it matches criteria to throw out
-            should_filter = self.check_to_filter(trn)
+            should_filter = self.check_to_filter(trn, collected, skipped)
 
             if should_filter:
                 continue
 
+            # fix this year's pga
+            if int(trn.season) == datetime.date.today().year:
+                if trn.tour == 'PGA':
+                    if "THEPLAYERS" in trn.name:
+                        trn.link = 'https://www.theplayers.com/past-results.html'
+                    else:
+                        trn.link = self.fix_ty_pga(trn.link)
+
+            print("TRNY: ", trn.name, trn.season)
             if trn.tour == 'PGA':
                 sr = SplashRequest(url=trn.link, args={'timeout': 90,'wait':1}, callback=self.pga_parse)
             elif trn.tour == 'Euro':
@@ -105,8 +251,15 @@ class ScoresSpider(scrapy.Spider):
             sr.meta['Trn'] = trn
             yield sr
 
-        self.skip_df = pd.DataFrame(self.skip_df, columns=['Season', 'Tour', 'Tournament', 'Reason'])
-        self.skip_df.to_csv('./skipped_trns.csv')
+        self.skip_df = pd.DataFrame(self.skip_df, columns=['TID', 'Tournament', 'Tour', 'Season', 'Reason'])
+        new_skip_df = pd.concat([old_skipped,self.skip_df], sort=False)
+        new_skip_df.drop_duplicates(subset ="TID",keep='first', inplace=True)
+        new_skip_df.to_csv('./skipped.csv', index=False)
+
+        print("NUMBER OF TOURNAMENTS ALREADY COLLECTED: ", len(collected))
+        print("NUMBER OF TOURNAMENTS SKIPPED: ", len(new_skip_df))
+        print("NUMBER OF TOURNAMENTS THAT HAVEN'T OCCURED: ", ho_counter)
+
 
     def pga_parse(self, response):
 
@@ -168,6 +321,7 @@ class ScoresSpider(scrapy.Spider):
 
 
     def euro_parse(self, response):
+
         table_found = False
         # for newer tables
         table = response.xpath('//table[@id="results-table"]')
@@ -244,7 +398,57 @@ class ScoresSpider(scrapy.Spider):
 
                 yield plyr_trn
 
+        # for newer alternate tables
+        if not table_found:
+            table = response.xpath('//table[@id="lbl"]/tbody//tr')
+        if len(table) > 0:
+            table_found = True
+            for row in table:
+                plyr_trn = Player_Tournament()
+                name = row.css('td.nm')
+                if len(name) < 1:
+                    continue
+                name_text = name.css('div::text').getall()[0]
+                plyr_trn['name'] = name_text
+                pos = row.css('td.b::text').getall()[0]
+                plyr_trn['pos'] = pos
+                rnds = row.css('td.rnd::text').getall()
+                rnd_num = 1
+                while len(rnds) > 0:
+                    rnd_name = 'R' + str(rnd_num)
+                    plyr_trn[rnd_name] = rnds.pop(0)
+                    rnd_num += 1
+
+                plyr_trn['tournament'] = response.meta['Trn'].name
+                plyr_trn['season'] = response.meta['Trn'].season
+                plyr_trn['tour'] = response.meta['Trn'].tour
+                plyr_trn['end_date'] = response.meta['Trn'].end_date
+                plyr_trn['start_date'] = response.meta['Trn'].start_date
+                plyr_trn['location'] = response.meta['Trn'].location
+
+                yield plyr_trn
+
+        # last resort, try different url
+        table_length = len(table)
+        print('TABLE LENGTH: ', table_length)
+        print(table)
+        if table_length < 2:
+            table_found = False
+        if not table_found:
+            print('TRYING DIFFERENT URL')
+            current_url = response.meta['Trn'].link
+            new_url = current_url + '#/leaderboard'
+            print('NEW URL: ', new_url)
+            sr = SplashRequest(url=new_url, endpoint='execute', args={'timeout': 90,'wait':1}, callback=self.alt_euro_parse)
+            yield sr
+
         yield
+
+    def alt_euro_parse(self, response):
+        inspect_response(response, self)
+
+
+        return
 
     def web_parse(self, response):
         # inspect_response(response,self)

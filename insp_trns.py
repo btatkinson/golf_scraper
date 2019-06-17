@@ -1,23 +1,18 @@
 import numpy as np
 import pandas as pd
 
-trn_df = pd.read_csv('./scores.csv')
 
-sched_df = pd.read_csv('./sched.csv')
-# testing
-sched_df = sched_df[:10]
 
-trn_df['tournament'] = trn_df['tournament'].str.strip()
-trn_df['season'] = trn_df['season'].astype(str)
-trn_df['TID'] = trn_df['tournament'] + trn_df['tour'] + trn_df['season']
+saved = pd.read_csv('has_saved.csv')
+sched = pd.read_csv('sched.csv')
+skipped = pd.read_csv('skipped.csv')
 
-sched_df['name'] = sched_df['name'].str.strip()
-sched_df['season'] = sched_df['season'].astype(str)
-sched_df['TID'] = sched_df['name'] + sched_df['tour'] + sched_df['season']
+sched = sched[:1299]
 
-unique_trn= trn_df.TID.unique()
-unique_sched = sched_df.TID.unique()
+saved_ids = list(saved.TID.unique())
+sched_ids = list(sched.tid.unique())
+skipped_ids = list(skipped.TID.unique())
 
-print(list(set(unique_sched) - set(unique_trn)))
+print(list(set(sched_ids)-set(skipped_ids)-set(saved_ids)))
 
 #
