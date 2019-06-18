@@ -9,6 +9,7 @@ import math
 from scrapy.shell import inspect_response
 from scrapy_splash import SplashRequest
 from scrapy.selector import Selector
+from tabula import read_pdf
 
 from golf_scraper.items import Player_Tournament
 
@@ -109,10 +110,21 @@ class ScoresSpider(scrapy.Spider):
             if int(trn.season) ==2009:
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'ZurichClassicofNewOrleans' in trn.name:
+            if int(trn.season) ==2011:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'ZurichClassicofNewOrleans' in trn.name:
+            if int(trn.season) ==2017:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Team Play"])
         if 'EURASIACUPpresentedbyDRB-HICOM' in trn.name:
             should_filter = True
             self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
-        if 'ISPSHANDAWorldSuper6Perth' in trn.name:
+        if 'Super6Perth' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
+        if 'EuropeanGolfTeamChampionships' in trn.name:
             should_filter = True
             self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
         if 'GolfSixes' in trn.name:
@@ -127,7 +139,7 @@ class ScoresSpider(scrapy.Spider):
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
         if 'OmegaMissionHillsWorldCup' in trn.name:
-            if int(trn.season) in [2007]:
+            if int(trn.season) in [2007,2008]:
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Missing"])
                 should_filter = True
         if 'FijiInternational' in trn.name:
@@ -162,6 +174,14 @@ class ScoresSpider(scrapy.Spider):
             if trn.tour =='Euro':
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'OMEGAMissionHillsWorldCup' in trn.name:
+            if str(trn.year) =='2011':
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'VikingClassic' in trn.name:
+            if str(trn.year) =='2009':
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
         if 'TampaBayClassicpresentedbyBuick' in trn.name:
             if int(trn.season) ==2001:
                 should_filter = True
@@ -184,7 +204,7 @@ class ScoresSpider(scrapy.Spider):
 
         # start scraping number
         START = 0
-        END = 1299
+        END = 2500
 
         # load tournaments
         sched = pd.read_csv('./sched.csv')
@@ -203,18 +223,18 @@ class ScoresSpider(scrapy.Spider):
             trn = Tournament(row)
             trns.append(trn)
 
-        # testing
         trns=trns[START:END]
-        num_trns = len(trns)
-        test_trns = []
-        for trn in trns:
-            if trn.link == 'https://www.europeantour.com//europeantour/season=2015/tournamentid=2015008/leaderboard/index.html':
-                test_trns.append(trn)
-        print('TEST TRN LINKS: ', len(test_trns))
+
+        # testing
+        # test_trns = []
+        # for trn in trns:
+        #     if trn.link == 'https://www.europeantour.com//europeantour/season=2015/tournamentid=2015008/leaderboard/index.html':
+        #         test_trns.append(trn)
+        # print('TEST TRN LINKS: ', len(test_trns))
 
         # count tournaments of the future
         ho_counter = 0
-        for trn in test_trns:
+        for trn in trns:
             try:
                 date = datetime.datetime.strptime(trn.end_date, '%b %d %Y').date()
             except:
@@ -428,19 +448,36 @@ class ScoresSpider(scrapy.Spider):
 
                 yield plyr_trn
 
-        # last resort, try different url
+        # last resort, try pdf
         table_length = len(table)
-        print('TABLE LENGTH: ', table_length)
-        print(table)
         if table_length < 2:
             table_found = False
         if not table_found:
-            print('TRYING DIFFERENT URL')
-            current_url = response.meta['Trn'].link
-            new_url = current_url + '#/leaderboard'
-            print('NEW URL: ', new_url)
-            sr = SplashRequest(url=new_url, endpoint='execute', args={'timeout': 90,'wait':1}, callback=self.alt_euro_parse)
-            yield sr
+            print('TRYING PDF')
+            try:
+                tid = self.get_tid(response.meta['Trn'].name, response.meta['Trn'].tour, response.meta['Trn'].season)
+                path = './pdfs/' + tid + '.pdf'
+                print(path)
+                df = read_pdf(path, pages='all')
+                for index, row in df.iterrows():
+                    plyr_trn = Player_Tournament()
+                    plyr_trn['name'] = row['Name']
+                    plyr_trn['pos'] = row['Pos']
+                    plyr_trn['R1'] = row['1']
+                    plyr_trn['R2'] = row['2']
+                    plyr_trn['R3'] = row['3']
+                    plyr_trn['R4'] = row['4']
+
+                    plyr_trn['tournament'] = response.meta['Trn'].name
+                    plyr_trn['season'] = response.meta['Trn'].season
+                    plyr_trn['tour'] = response.meta['Trn'].tour
+                    plyr_trn['end_date'] = response.meta['Trn'].end_date
+                    plyr_trn['start_date'] = response.meta['Trn'].start_date
+                    plyr_trn['location'] = response.meta['Trn'].location
+
+                    yield plyr_trn
+            except:
+                pass
 
         yield
 
