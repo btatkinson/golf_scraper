@@ -111,11 +111,15 @@ class ScoresSpider(scrapy.Spider):
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
         if 'ZurichClassicofNewOrleans' in trn.name:
-            if int(trn.season) ==2011:
+            if int(trn.season) in [2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017]:
                 should_filter = True
-                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Match Play"])
-        if 'ZurichClassicofNewOrleans' in trn.name:
-            if int(trn.season) ==2017:
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Team Play"])
+        if 'CompaqClassicofNewOrleans' in trn.name:
+            if int(trn.season) in [2000,2001,2002]:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Team Play"])
+        if 'HPClassicofNewOrleans' in trn.name:
+            if int(trn.season) in [2003,2004]:
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Team Play"])
         if 'EURASIACUPpresentedbyDRB-HICOM' in trn.name:
@@ -133,6 +137,15 @@ class ScoresSpider(scrapy.Spider):
         if 'SeveTrophy' in trn.name:
             should_filter = True
             self.skip_df.append([tid, trn.name, trn.tour, trn.season, "MatchPlay"])
+        if 'SeveTrophy*' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'WGC-TheWorldCup*' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'EurobetSeveBallesterosTrophy*' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
         # missing
         if 'WGC-CadillacChampionship' in trn.name:
             if int(trn.season) in [2012]:
@@ -178,6 +191,12 @@ class ScoresSpider(scrapy.Spider):
             if str(trn.year) =='2011':
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'WGC-EMCWorldCup*' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
+        if 'AlfredDunhillCup*' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Cancelled"])
         if 'VikingClassic' in trn.name:
             if str(trn.year) =='2009':
                 should_filter = True
