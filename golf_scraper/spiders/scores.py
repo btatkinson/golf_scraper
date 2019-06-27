@@ -93,6 +93,21 @@ class ScoresSpider(scrapy.Spider):
         if 'WorldCupofGolf' in trn.name:
             should_filter = True
             self.skip_df.append([tid, trn.name, trn.tour, trn.season, "WorldCupofGolf"])
+        if 'Reno-TahoeOpen' in trn.name:
+            if trn.season == 2012:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Weird Format"])
+        if 'Reno-TahoeOpen' in trn.name:
+            if trn.season in [2012,2013]:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Stableford"])
+        if 'BarracudaChampionship' in trn.name:
+            should_filter = True
+            self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Stableford"])
+        if 'ANZChampionship' in trn.name:
+            if trn.season in [2002,2003,2004]:
+                should_filter = True
+                self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Weird Format"])
 
         if 'FranklinTempletonShootout' in trn.name:
             if int(trn.season) ==2000:
@@ -115,6 +130,9 @@ class ScoresSpider(scrapy.Spider):
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Team Play"])
         if 'CompaqClassicofNewOrleans' in trn.name:
+            if int(trn.season) in [2000,2001,2002]:
+                should_filter = True
+        if 'COMPAQClassicofNewOrleans' in trn.name:
             if int(trn.season) in [2000,2001,2002]:
                 should_filter = True
                 self.skip_df.append([tid, trn.name, trn.tour, trn.season, "Team Play"])
@@ -472,7 +490,7 @@ class ScoresSpider(scrapy.Spider):
         if table_length < 2:
             table_found = False
         if not table_found:
-            print('TRYING PDF')
+            # print('TRYING PDF')
             try:
                 tid = self.get_tid(response.meta['Trn'].name, response.meta['Trn'].tour, response.meta['Trn'].season)
                 path = './pdfs/' + tid + '.pdf'
